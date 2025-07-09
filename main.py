@@ -8,6 +8,8 @@ from flask import Flask, request, render_template, redirect, url_for
 from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+REPLICATE_API_TOKEN = "r8_NMNWJ2UrPYicF9l0ibrzt8rqpCaiiwf472QEd"
+
 # ───────── إعداد الاتصال بقاعدة البيانات ─────────
 DB_CONN_STR = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
@@ -133,8 +135,8 @@ def build_main_menu(cid: int) -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(row_width=1)
     kb.add(
         InlineKeyboardButton("📂 مشاريع مفتوحة المصدر", callback_data="p_random"),
-        InlineKeyboardButton("👨‍💻 مطوّر البوت", callback_data="links"),
-        InlineKeyboardButton("🖼️ النص الى صورة", callback_data="txt2img"),
+        InlineKeyboardButton("🧠 صورة من نص (AI)", callback_data="ai_img"),
+        InlineKeyboardButton("👨‍💻 مطوّر البوت", callback_data="links")
     )
     if is_admin(cid):
         kb.add(InlineKeyboardButton("🛠️ إدارة البوت", callback_data="admin"))
@@ -559,20 +561,30 @@ def webhook():
         bot.process_new_updates([telebot.types.Update.de_json(update)])
     return "OK", 200
 
-@bot.callback_query_handler(func=lambda c: c.data == "txt2img")
-def cb_txt2img(call):
-    bot.edit_message_text("✏️ أرسل النص الذي تريد تحويله إلى صورة:",
-                          call.message.chat.id,
-                          call.message.message_id)
-    bot.register_next_step_handler(call.message, make_img)
+@bot.callback_query_handler(func=lambda c: c.data == "ai_img")
+def ask_prompt(call):
+    bot.edit_message_text(
+        "📝 أرسل وصفًا دقيقًا للصورة التي تريد إنشاؤها بالذكاء الاصطناعي:",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id
+    )
+    bot.register_next_step_handler(call.message, generate_ai_image)
 
-def make_img(msg):
-    text = msg.text.strip()
-    if not text:
-        bot.reply_to(msg, "⚠️ نص فارغ.")
-        return
-    url = f"https://dummyimage.com/1024x600/222/fff.png&text={quote_plus(text)}"
-    bot.send_photo(msg.chat.id, url, caption="✅ تفضّل صورتك")
+
+def generate_ai_image(msg):
+    prompt = msg.text.strip()
+    cid = msg.chat.id
+    bot.send_chat_action(cid, "upload_photo")  # يُظهر جاري التحميل
+
+    try:
+        output = replicate.run(
+            "stability-ai/sdxl:9fa26e1f129b4c3d4b2c1f543b7c3b204631cdd29935d5194031e6e7c61c6a3d",
+            input={"prompt": prompt}
+        )
+        image_url = output[0] if isinstance(output, list) else output
+        bot.send_photo(cid, image_url, caption="🧠 تم إنشاء الصورة باستخدام الذكاء الاصطناعي")
+    except Exception as e:
+        bot.reply_to(msg, f"❌ حدث خطأ أثناء توليد الصورة:\n{e}")
 
 
 if __name__ == "__main__":
