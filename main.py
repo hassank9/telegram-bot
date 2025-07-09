@@ -601,16 +601,24 @@ def ask_prompt(call):
 def convert_amount(msg):
     try:
         amount = float(msg.text.strip())
-        url = "https://api.exchangerate.host/latest?base=IQD&symbols=USD,EUR,IRR,TRY,KWD,SAR"
+
+        # نجعل العملة الأساسية هي USD بدلاً من IQD
+        url = "https://api.exchangerate.host/latest?base=USD&symbols=IQD,EUR,IRR,TRY,KWD,SAR"
         res = requests.get(url).json()
+        
+        if "rates" not in res:
+            raise Exception("الرابط لم يُرجع بيانات سعر الصرف.")
+
         rates = res["rates"]
 
-        usd = amount * rates['USD']
-        eur = amount * rates['EUR']
-        irr = amount * rates['IRR']
-        tryr = amount * rates['TRY']
-        kwd = amount * rates['KWD']
-        sar = amount * rates['SAR']
+        # كم يساوي 1 دينار عراقي بالدولار
+        iqd_to_usd = 1 / rates['IQD']
+        usd = amount * iqd_to_usd
+        eur = usd * rates['EUR']
+        irr = usd * rates['IRR']
+        tryr = usd * rates['TRY']
+        kwd = usd * rates['KWD']
+        sar = usd * rates['SAR']
 
         response = (
             f"📈 <b>{amount:.2f} IQD تعادل:</b>\n\n"
