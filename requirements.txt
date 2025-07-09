@@ -1,3 +1,2 @@
-pyodbc
-telebot
-flask
+Flask
+pyTelegramBotAPI
