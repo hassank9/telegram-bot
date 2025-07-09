@@ -177,11 +177,10 @@ def main_menu_edit(call, note="👋 مرحبًا بك!"):
         reply_markup=build_main_menu(call.message.chat.id),
     )
 
-@bot.message_handler(func=lambda m: m.text == "📥 ابدأ")
+@bot.message_handler(func=lambda m: m.text == "📩 ابدأ")
 def handle_start_button(msg):
-    cid = msg.chat.id
-    main_menu_send(cid)  # إعادة عرض القائمة الرئيسية عند الضغط
-
+    if msg.from_user is not None and msg.text.strip() == "📩 ابدأ":
+        main_menu_send(msg.chat.id)
 
 # ╭───────────────────────╮
 # │        /start         │
