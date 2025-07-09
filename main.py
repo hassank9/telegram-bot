@@ -138,7 +138,7 @@ def build_main_menu(cid: int) -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(row_width=1)
     kb.add(
         InlineKeyboardButton("📂 مشاريع مفتوحة المصدر", callback_data="p_random"),
-        InlineKeyboardButton("💱 سعر الصرف", callback_data="exchange_rates"),
+        InlineKeyboardButton("💱 سعر الصرف", callback_data="currency_convert"),
         InlineKeyboardButton("👨‍💻 مطوّر البوت", callback_data="links")
     )
     if is_admin(cid):
@@ -631,6 +631,42 @@ def convert_amount(msg):
         )
 
         bot.send_message(msg.chat.id, response, parse_mode="HTML", reply_markup=build_main_menu(msg.chat.id))
+
+    except Exception as e:
+        bot.send_message(msg.chat.id, f"❌ فشل التحويل:\n{e}")
+
+@bot.callback_query_handler(func=lambda c: c.data == "currency_convert")
+def ask_currency_data(call):
+    bot.edit_message_text(
+        "🔁 أرسل المبلغ والصيغة بهذا الشكل:\n\n<المبلغ> | <من عملة> | <إلى عملة>\n\nمثال:\n100 | USD | IQD",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id
+    )
+    bot.register_next_step_handler(call.message, do_currency_conversion)
+
+def do_currency_conversion(msg):
+    try:
+        parts = [x.strip().upper() for x in msg.text.split("|")]
+        if len(parts) != 3:
+            raise ValueError("صيغة غير صحيحة")
+
+        amount = float(parts[0])
+        from_curr = parts[1]
+        to_curr = parts[2]
+
+        url = f"https://api.exchangerate.host/convert?from={from_curr}&to={to_curr}&amount={amount}"
+        res = requests.get(url).json()
+
+        if not res.get("success"):
+            raise Exception("فشل جلب سعر الصرف")
+
+        result = res["result"]
+        bot.send_message(
+            msg.chat.id,
+            f"💱 <b>{amount} {from_curr}</b> ≈ <b>{result:.2f} {to_curr}</b>",
+            parse_mode="HTML",
+            reply_markup=build_main_menu(msg.chat.id)
+        )
 
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ فشل التحويل:\n{e}")
