@@ -637,10 +637,25 @@ def convert_amount(msg):
 
 @bot.callback_query_handler(func=lambda c: c.data == "currency_convert")
 def ask_currency_data(call):
+    text = (
+        "🔁 <b>أرسل المبلغ والصيغة بهذا الشكل:</b>\n"
+        "<المبلغ> | <من عملة> | <إلى عملة>\n"
+        "مثال: <code>100 | USD | IQD</code>\n\n"
+        "💱 <b>العملات المدعومة:</b>\n"
+        "USD – دولار أمريكي\n"
+        "IQD – دينار عراقي\n"
+        "EUR – يورو\n"
+        "IRR – تومان إيراني\n"
+        "TRY – ليرة تركية\n"
+        "KWD – دينار كويتي\n"
+        "SAR – ريال سعودي"
+    )
+
     bot.edit_message_text(
-        "🔁 أرسل المبلغ والصيغة بهذا الشكل:\n\n<المبلغ> | <من عملة> | <إلى عملة>\n\nمثال:\n100 | USD | IQD",
+        text,
         chat_id=call.message.chat.id,
-        message_id=call.message.message_id
+        message_id=call.message.message_id,
+        parse_mode="HTML"
     )
     bot.register_next_step_handler(call.message, do_currency_conversion)
 
