@@ -2,6 +2,7 @@ import os
 import random
 import pyodbc
 import telebot
+import requests
 import replicate  # ← هذا هو المطلوب
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 from urllib.parse import quote_plus
@@ -137,7 +138,7 @@ def build_main_menu(cid: int) -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(row_width=1)
     kb.add(
         InlineKeyboardButton("📂 مشاريع مفتوحة المصدر", callback_data="p_random"),
-        InlineKeyboardButton("🧠 صورة من نص (AI)", callback_data="ai_img"),
+        InlineKeyboardButton("💱 سعر الصرف", callback_data="exchange_rates"),
         InlineKeyboardButton("👨‍💻 مطوّر البوت", callback_data="links")
     )
     if is_admin(cid):
@@ -156,6 +157,15 @@ def main_menu_send(cid: int, note="👋 مرحبًا بك!"):
         reply_markup=get_persistent_menu()  # ← إضافة الزر الدائم هنا
     )
     bot.send_message(cid, note, reply_markup=build_main_menu(cid))
+
+@bot.callback_query_handler(func=lambda c: c.data == "exchange_rates")
+def ask_amount_in_iqd(call):
+    bot.edit_message_text(
+        "💵 أرسل الآن مبلغًا بالدينار العراقي (IQD) وسأحسب لك كم يساوي بالعملات الأخرى:",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id
+    )
+    bot.register_next_step_handler(call.message, convert_amount)
 
 
 
@@ -588,23 +598,35 @@ def ask_prompt(call):
     )
     bot.register_next_step_handler(call.message, generate_ai_image)
 
-
-@bot.message_handler(commands=["image"])
-def generate_ai_image(msg):
-    prompt = msg.text.strip()
-    cid = msg.chat.id
-
-    bot.send_chat_action(cid, "upload_photo")  # لإظهار "جاري التحميل..."
-
+def convert_amount(msg):
     try:
-        output = replicate.run(
-            "stability-ai/sdxl:9fa26e1f129b4c3d4b2c1f543b7c3b204631cdd29935d5194031e6e7c61c6a3d",
-            input={"prompt": prompt}
+        amount = float(msg.text.strip())
+        url = "https://api.exchangerate.host/latest?base=IQD&symbols=USD,EUR,IRR,TRY,KWD,SAR"
+        res = requests.get(url).json()
+        rates = res["rates"]
+
+        usd = amount * rates['USD']
+        eur = amount * rates['EUR']
+        irr = amount * rates['IRR']
+        tryr = amount * rates['TRY']
+        kwd = amount * rates['KWD']
+        sar = amount * rates['SAR']
+
+        response = (
+            f"📈 <b>{amount:.2f} IQD تعادل:</b>\n\n"
+            f"💵 <b>{usd:.2f} دولار أمريكي</b>\n"
+            f"💶 <b>{eur:.2f} يورو</b>\n"
+            f"🇮🇷 <b>{irr / 10:.2f} تومان</b>\n"
+            f"🇹🇷 <b>{tryr:.2f} ليرة تركية</b>\n"
+            f"🇰🇼 <b>{kwd:.4f} دينار كويتي</b>\n"
+            f"🇸🇦 <b>{sar:.2f} ريال سعودي</b>"
         )
-        image_url = output[0] if isinstance(output, list) else output
-        bot.send_photo(cid, image_url, caption="🧠 تمت توليد الصورة بالذكاء الاصطناعي!")
+
+        bot.send_message(msg.chat.id, response, parse_mode="HTML", reply_markup=build_main_menu(msg.chat.id))
+
     except Exception as e:
-        bot.send_message(cid, f"❌ حدث خطأ أثناء التوليد:\n{e}")
+        bot.send_message(msg.chat.id, f"❌ فشل التحويل:\n{e}")
+
 
 
 if __name__ == "__main__":
