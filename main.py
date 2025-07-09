@@ -2,6 +2,7 @@ import os
 import random
 import pyodbc
 import telebot
+from urllib.parse import quote_plus
 from telebot import types
 from flask import Flask, request, render_template, redirect, url_for
 from telebot.apihelper import ApiTelegramException
@@ -133,6 +134,7 @@ def build_main_menu(cid: int) -> InlineKeyboardMarkup:
     kb.add(
         InlineKeyboardButton("📂 مشاريع مفتوحة المصدر", callback_data="p_random"),
         InlineKeyboardButton("👨‍💻 مطوّر البوت", callback_data="links"),
+        InlineKeyboardButton("🖼️ النص الى صورة", callback_data="txt2img"),
     )
     if is_admin(cid):
         kb.add(InlineKeyboardButton("🛠️ إدارة البوت", callback_data="admin"))
@@ -556,6 +558,22 @@ def webhook():
     if update:
         bot.process_new_updates([telebot.types.Update.de_json(update)])
     return "OK", 200
+
+@bot.callback_query_handler(func=lambda c: c.data == "txt2img")
+def cb_txt2img(call):
+    bot.edit_message_text("✏️ أرسل النص الذي تريد تحويله إلى صورة:",
+                          call.message.chat.id,
+                          call.message.message_id)
+    bot.register_next_step_handler(call.message, make_img)
+
+def make_img(msg):
+    text = msg.text.strip()
+    if not text:
+        bot.reply_to(msg, "⚠️ نص فارغ.")
+        return
+    url = f"https://dummyimage.com/1024x600/222/fff.png&text={quote_plus(text)}"
+    bot.send_photo(msg.chat.id, url, caption="✅ تفضّل صورتك")
+
 
 if __name__ == "__main__":
     bot.remove_webhook()
