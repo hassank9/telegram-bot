@@ -2,6 +2,7 @@ import os
 import random
 import pyodbc
 import telebot
+import replicate  # ← هذا هو المطلوب
 from urllib.parse import quote_plus
 from telebot import types
 from flask import Flask, request, render_template, redirect, url_for
