@@ -543,5 +543,20 @@ def callback_back(call: types.CallbackQuery):
 
 # ─────────────────────── تشغيل البوت ───────────────────────
 
-print("✅ Bot with inline-edits running…")
-bot.infinity_polling(skip_pending=True)
+app = Flask(__name__)
+
+@app.route("/", methods=["GET"])
+def home():
+    return "Bot is alive!", 200
+
+@app.route("/", methods=["POST"])
+def webhook():
+    update = request.get_json()
+    if update:
+        bot.process_new_updates([telebot.types.Update.de_json(update)])
+    return "OK", 200
+
+if __name__ == "__main__":
+    bot.remove_webhook()
+    bot.set_webhook(url="https://telegram-bot-d1mxiq.fly.dev/")  # عدله إلى رابط Fly الخاص بك
+    app.run(host="0.0.0.0", port=8080)
