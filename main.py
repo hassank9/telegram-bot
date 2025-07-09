@@ -3,6 +3,7 @@ import random
 import pyodbc
 import telebot
 import replicate  # ← هذا هو المطلوب
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 from urllib.parse import quote_plus
 from telebot import types
 from flask import Flask, request, render_template, redirect, url_for
@@ -143,9 +144,19 @@ def build_main_menu(cid: int) -> InlineKeyboardMarkup:
         kb.add(InlineKeyboardButton("🛠️ إدارة البوت", callback_data="admin"))
     return kb
 
+def get_persistent_menu():
+    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.add(KeyboardButton("📥 ابدأ"))
+    return kb
 
 def main_menu_send(cid: int, note="👋 مرحبًا بك!"):
+    bot.send_message(
+        cid,
+        note,
+        reply_markup=get_persistent_menu()  # ← إضافة الزر الدائم هنا
+    )
     bot.send_message(cid, note, reply_markup=build_main_menu(cid))
+
 
 
 def main_menu_edit(call, note="👋 مرحبًا بك!"):
@@ -155,6 +166,12 @@ def main_menu_edit(call, note="👋 مرحبًا بك!"):
         message_id=call.message.message_id,
         reply_markup=build_main_menu(call.message.chat.id),
     )
+
+@bot.message_handler(func=lambda m: m.text == "📥 ابدأ")
+def handle_start_button(msg):
+    cid = msg.chat.id
+    main_menu_send(cid)  # إعادة عرض القائمة الرئيسية عند الضغط
+
 
 # ╭───────────────────────╮
 # │        /start         │
