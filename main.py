@@ -9,7 +9,7 @@ from flask import Flask, request, render_template, redirect, url_for
 from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-REPLICATE_API_TOKEN = "r8_NMNWJ2UrPYicF9l0ibrzt8rqpCaiiwf472QEd"
+replicate.Client(api_token=os.getenv("r8_NMNWJ2UrPYicF9l0ibrzt8rqpCaiiwf472QEd"))
 
 # ───────── إعداد الاتصال بقاعدة البيانات ─────────
 DB_CONN_STR = (
@@ -572,10 +572,12 @@ def ask_prompt(call):
     bot.register_next_step_handler(call.message, generate_ai_image)
 
 
+@bot.message_handler(commands=["image"])
 def generate_ai_image(msg):
     prompt = msg.text.strip()
     cid = msg.chat.id
-    bot.send_chat_action(cid, "upload_photo")  # يُظهر جاري التحميل
+
+    bot.send_chat_action(cid, "upload_photo")  # لإظهار "جاري التحميل..."
 
     try:
         output = replicate.run(
@@ -583,9 +585,9 @@ def generate_ai_image(msg):
             input={"prompt": prompt}
         )
         image_url = output[0] if isinstance(output, list) else output
-        bot.send_photo(cid, image_url, caption="🧠 تم إنشاء الصورة باستخدام الذكاء الاصطناعي")
+        bot.send_photo(cid, image_url, caption="🧠 تمت توليد الصورة بالذكاء الاصطناعي!")
     except Exception as e:
-        bot.reply_to(msg, f"❌ حدث خطأ أثناء توليد الصورة:\n{e}")
+        bot.send_message(cid, f"❌ حدث خطأ أثناء التوليد:\n{e}")
 
 
 if __name__ == "__main__":
