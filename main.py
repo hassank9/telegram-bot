@@ -559,5 +559,5 @@ def webhook():
 
 if __name__ == "__main__":
     bot.remove_webhook()
-    bot.set_webhook(url="https://telegram-bot-d1mxiq.fly.dev/")  # عدله إلى رابط Fly الخاص بك
+    bot.set_webhook(url="https://telegram-bot-gs90.onrender.com/")  # عدله إلى رابط Fly الخاص بك
     app.run(host="0.0.0.0", port=8080)
