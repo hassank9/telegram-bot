@@ -150,7 +150,7 @@ def get_persistent_menu():
     kb.add(KeyboardButton("📥 ابدأ"))
     return kb
 
-def main_menu_send(cid: int):
+def main_menu_send(cid: int, note="👋 مرحبًا بك!"):
     bot.send_message(
         cid,
         note,
